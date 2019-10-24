@@ -1,0 +1,41 @@
+version: '3'
+services:
+    postgres:
+        image: postgres:9.6
+        container_name: "postgres"
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+            # Uncomment these lines to persist data on the local filesystem.
+            - PGDATA=/var/lib/postgresql/data/pgdata
+        volumes:
+            - ./pgdata:/var/lib/postgresql/data/pgdata
+        ports:
+            - 5432:5432
+
+    webserver:
+        image: puckel/docker-airflow:1.10.4
+        restart: always
+        container_name: airflow
+        depends_on:
+            - postgres
+        environment:
+            - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+            - LOAD_EX=n
+            - EXECUTOR=Local
+            - AIRFLOW_DEPS=slack
+            - PYTHON_DEPS=airflow-code-editor
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            # Uncomment to include custom plugins
+            - ./plugins:/usr/local/airflow/plugins
+            - ./requirements.txt:/requirements.txt
+        ports:
+            - "8080:8080"
+        command: webserver
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3
